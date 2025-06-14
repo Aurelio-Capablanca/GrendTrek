@@ -1,6 +1,7 @@
 package com.aib.grendtrek;
 
-import com.aib.grendtrek.dataConfigurations.PostgreSQL.PostgreSQLConnector;
+
+import com.aib.grendtrek.dataConfigurations.common.Connector;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
@@ -12,8 +13,8 @@ public class GrendTrekApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(GrendTrekApplication.class, args);
-        PostgreSQLConnector postgre = new PostgreSQLConnector();
-        postgre.init();
+        Connector connector = new Connector();
+        connector.init();
     }
 
 }

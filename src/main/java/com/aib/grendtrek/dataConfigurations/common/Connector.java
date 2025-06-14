@@ -3,38 +3,45 @@ package com.aib.grendtrek.dataConfigurations.common;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
-//import org.springframework.r2dbc.core.DatabaseClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static io.r2dbc.spi.ConnectionFactoryOptions.*;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class Connector {
 
-//    public Map<String, ConnectionFactory> databaseConnectors = new HashMap<>();
-//    private final DatabaseClient client;
-//
-//    public Connector(){
-//        this.client = DatabaseConnector();
-//    }
-//
-//    public DatabaseClient DatabaseConnector(){
-//        ConnectionFactoryOptions options = ConnectionFactoryOptions.builder()
-//                .option(DRIVER, "postgresql")
-//                .option(HOST, "localhost")
-//                .option(PORT, 5432)
-//                .option(USER, "superuserp")
-//                .option(PASSWORD, "jnk555")
-//                .option(DATABASE , "postgres")
-//                .build();
-//        ConnectionFactory factory = ConnectionFactories.get(options);
-//        return DatabaseClient.builder().connectionFactory(factory).build();
-//    }
-//
-//
-//    public Mono<Void> init(){
-//        return client.sql("Select 1").fetch().rowsUpdated().then();
-//    }
+    private final ConnectionFactory postgreSQLfactory;
+
+    public Connector() {
+        this.postgreSQLfactory = createFactoryForPostgreSQL();
+    }
+
+    public ConnectionFactory createFactoryForPostgreSQL() {
+        return ConnectionFactories.get(
+                ConnectionFactoryOptions.builder()
+                        .option(DRIVER, "postgresql")
+                        .option(HOST, "localhost")
+                        .option(PORT, 5432)
+                        .option(USER, "superuserp")
+                        .option(PASSWORD, "jkl555")
+                        .option(DATABASE, "postgres")
+                        .build()
+        );
+    }
+
+    public void init() {
+        System.out.println("Enters!");
+        Mono.from(postgreSQLfactory.create())
+                .flatMapMany(connection ->
+                        Flux.from(connection
+                                        .createStatement("SELECT 1")
+                                        .execute()
+                                )
+                                .flatMap(result -> result.map((row, data) -> row.get(0)))
+                                .doFinally(signal -> connection.close())
+                )
+                .doOnNext(result -> System.out.println("Query Result ! "+result))
+                .doOnError(e -> System.err.println("Error: " + e.getMessage()))
+                .subscribe();
+    }
 }
