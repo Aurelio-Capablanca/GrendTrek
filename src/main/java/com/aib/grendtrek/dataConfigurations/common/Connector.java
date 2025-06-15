@@ -37,19 +37,16 @@ public class Connector {
     }
 
     public void init(ConnectionFactory factory) {
-        System.out.println("Enters!");
-        Mono.from(factory.create())
-                .flatMapMany(connection ->
-                        Flux.from(connection
-                                        .createStatement("SELECT 1")
-                                        .execute()
-                                )
-                                .flatMap(result -> result.map((row, data) -> row.get(0)))
-                                .doFinally(signal -> connection.close())
+        Flux.usingWhen(
+                        Mono.from(factory.create()),
+                        connection ->
+                                Flux.from(connection.createStatement("SELECT 1").execute())
+                                        .flatMap(result -> result.map((row, data) -> row.get(0))),
+                        connection -> Mono.from(connection.close())
+
                 )
-                .doOnNext(result -> System.out.println("Query Result ! " + result))
-                .doOnError(e -> System.err.println("Error: " + e.getMessage()))
-                .subscribe(result -> {
-                }, error -> System.out.println("Subscriber Error: " + error.getMessage()));
+                .doOnNext(result -> System.out.println("Query Result : " + result))
+                .subscribe(results -> {
+                }, error -> System.out.println("Error at Init: " + error.getMessage()));
     }
 }
