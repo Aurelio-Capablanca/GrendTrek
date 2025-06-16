@@ -1,7 +1,7 @@
 package com.aib.grendtrek;
 
 
-import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.repository.QuerySetsForSQLServer;
+import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.repository.QuerySetsForMSSQL;
 import com.aib.grendtrek.dataConfigurations.common.ConnectionAttributes;
 import com.aib.grendtrek.dataConfigurations.common.Connector;
 import io.r2dbc.spi.ConnectionFactory;
@@ -27,7 +27,7 @@ public class GrendTrekApplication {
                 .build());
         final ConnectionFactory connection = connector.getConnectionFactory("SQLServerADworks");
         connector.init(connection);
-        final QuerySetsForSQLServer origin = new QuerySetsForSQLServer();
+        final QuerySetsForMSSQL origin = new QuerySetsForMSSQL();
         origin.seeAllTablesBySchema(connection).doOnNext(System.out::println).subscribe(res -> {}, error -> System.out.println("Error : "+error.getMessage()));
     }
 

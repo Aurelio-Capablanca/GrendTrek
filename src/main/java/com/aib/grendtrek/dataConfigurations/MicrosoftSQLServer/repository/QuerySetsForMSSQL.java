@@ -7,7 +7,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
-public class QuerySetsForSQLServer {
+public class QuerySetsForMSSQL {
 
     public Flux<Map<String, String>> seeAllTablesBySchema(ConnectionFactory factory) {
         return Flux.usingWhen(
