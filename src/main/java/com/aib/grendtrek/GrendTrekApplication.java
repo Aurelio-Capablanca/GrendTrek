@@ -2,6 +2,7 @@ package com.aib.grendtrek;
 
 
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.repository.QuerySetsForMSSQL;
+import com.aib.grendtrek.dataConfigurations.PostgreSQL.repository.QuerySetsForPostgreSQL;
 import com.aib.grendtrek.dataConfigurations.common.ConnectionAttributes;
 import com.aib.grendtrek.dataConfigurations.common.R2DBCConnectionFactory;
 import io.r2dbc.spi.ConnectionFactory;
@@ -45,8 +46,12 @@ public class GrendTrekApplication {
         final QuerySetsForMSSQL originQuerySet = new QuerySetsForMSSQL();
         originQuerySet.seeAllTablesBySchema(origin)
                 .doOnNext(System.out::println).subscribe(res -> {
+                            final QuerySetsForPostgreSQL destinySet = new QuerySetsForPostgreSQL();
+                            destinySet.seeAllTablesFromSchema(destiny).doOnNext(System.out::println).subscribe(result -> {
+                            }, error -> System.out.println("Error : " + error.getMessage()));
                         },
                         error -> System.out.println("Error : " + error.getMessage()));
+
     }
 
 }

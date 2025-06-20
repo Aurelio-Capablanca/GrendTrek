@@ -41,7 +41,6 @@ public class QuerySetsForMSSQL {
                                                 """)
                                         .execute())
                         .flatMap(result -> {
-                            System.out.println(result);
                             return result.map((row, data) -> {
                                 final String columnName = row.get("COLUMN_NAME", String.class);
                                 final String tableName = row.get("TABLE_NAME", String.class);
