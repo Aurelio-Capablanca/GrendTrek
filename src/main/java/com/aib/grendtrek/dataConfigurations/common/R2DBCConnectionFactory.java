@@ -11,11 +11,11 @@ import java.util.Map;
 
 import static io.r2dbc.spi.ConnectionFactoryOptions.*;
 
-public class Connector {
+public class R2DBCConnectionFactory {
 
     public final Map<String, ConnectionFactory> allConnections = new HashMap<>();
 
-    public Connector() {
+    public R2DBCConnectionFactory() {
     }
 
     public void addConnections(String name, ConnectionAttributes attributes) {
