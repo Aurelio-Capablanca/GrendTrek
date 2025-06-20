@@ -10,6 +10,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
 
+import java.sql.SQLOutput;
+
 @SpringBootApplication(exclude = {
         R2dbcAutoConfiguration.class
 })
@@ -44,13 +46,18 @@ public class GrendTrekApplication {
         factory.init(destiny);
         //gettin full schemas
         final QuerySetsForMSSQL originQuerySet = new QuerySetsForMSSQL();
+        final QuerySetsForPostgreSQL destinySet = new QuerySetsForPostgreSQL();
+
         originQuerySet.seeAllTablesBySchema(origin)
-                .doOnNext(System.out::println).subscribe(res -> {
-                            final QuerySetsForPostgreSQL destinySet = new QuerySetsForPostgreSQL();
-                            destinySet.seeAllTablesFromSchema(destiny).doOnNext(System.out::println).subscribe(result -> {
-                            }, error -> System.out.println("Error : " + error.getMessage()));
-                        },
+                .doOnNext(System.out::println)
+                .thenMany(destinySet.seeAllTablesFromSchema(destiny).doOnNext(System.out::println))
+                .thenMany(originQuerySet.seeByTableAndSchema(origin, "Employee", "HumanResources").doOnNext(System.out::println))
+                .subscribe(res -> {},
                         error -> System.out.println("Error : " + error.getMessage()));
+//        System.out.println("Get a Table !");
+//
+//        originQuerySet.seeByTableAndSchema(origin, "Employee", "HumanResources").doOnNext(System.out::println).subscribe(results -> {
+//        }, error -> System.out.println("Error : " + error.getMessage()));
 
     }
 

@@ -5,7 +5,9 @@ import io.r2dbc.spi.ConnectionFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class QuerySetsForMSSQL {
 
@@ -13,8 +15,7 @@ public class QuerySetsForMSSQL {
         return Flux.usingWhen(
                 Mono.from(factory.create()),
                 connection -> Flux.from(
-                                connection.createStatement("""
-                                                
+                                connection.createStatement("""                    
                                                 SELECT
                                                     IC.COLUMN_NAME,
                                                     IC.Data_TYPE,
@@ -52,7 +53,42 @@ public class QuerySetsForMSSQL {
     }
 
 
-
+    public Flux<List<String>> seeByTableAndSchema(ConnectionFactory factory, String tableName, String schemaName) {
+        return Flux.usingWhen(
+                Mono.from(factory.create()),
+                connection -> Flux.from(connection.createStatement(String.format("""
+                                    SELECT
+                                    IC.COLUMN_NAME,
+                                    IC.Data_TYPE,
+                                    IC.CHARACTER_MAXIMUM_LENGTH as LengthField,
+                                    EP.[Value] as [MS_Description],
+                                    IKU.CONSTRAINT_NAME,
+                                    ITC.CONSTRAINT_TYPE,
+                                    IC.IS_NULLABLE,
+                                    IC.TABLE_NAME
+                                 FROM
+                                    INFORMATION_SCHEMA.COLUMNS IC
+                                    INNER JOIN sys.columns sc ON OBJECT_ID(QUOTENAME(IC.TABLE_SCHEMA) + '.' + QUOTENAME(IC.TABLE_NAME)) = sc.[object_id] AND IC.COLUMN_NAME = sc.name
+                                    LEFT OUTER JOIN sys.extended_properties EP ON sc.[object_id] = EP.major_id
+                                    			AND sc.[column_id] = EP.minor_id AND EP.name = 'MS_Description' 	
+                                    			AND EP.class = 1
+                                    LEFT OUTER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE IKU ON IKU.COLUMN_NAME = IC.COLUMN_NAME
+                                    			and IKU.TABLE_NAME = IC.TABLE_NAME and IKU.TABLE_CATALOG = IC.TABLE_CATALOG
+                                    LEFT OUTER JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS ITC ON ITC.TABLE_NAME = IKU.TABLE_NAME
+                                    			and ITC.CONSTRAINT_NAME = IKU.CONSTRAINT_NAME
+                                WHERE
+                                  IC.TABLE_CATALOG = 'AdventureWorks2022'
+                                  and IC.TABLE_SCHEMA = '%s'
+                                and IC.TABLE_NAME = '%s'
+                                order by IC.ORDINAL_POSITION
+                                """,schemaName, tableName))
+                        .execute()).flatMap(result -> result.map((row, metadata) -> {
+                        final String field = Optional.ofNullable(row.get("COLUMN_NAME", String.class)).orElse("Not Found");
+                        return List.of(field);
+                    })),
+                Connection::close
+        );
+    }
 
 
 }
