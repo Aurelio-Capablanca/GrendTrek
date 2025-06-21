@@ -1,20 +1,23 @@
 package com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class SchemaDataMSSQL {
 
-    /*
-    IC.COLUMN_NAME,
-    IC.Data_TYPE,
-    IC.CHARACTER_MAXIMUM_LENGTH as LengthField,
-    EP.[Value] as [MS_Description],
-    IKU.CONSTRAINT_NAME,
-    ITC.CONSTRAINT_TYPE,
-    IC.IS_NULLABLE,
-    IC.TABLE_NAME
-    **/
-
-
-
-
+    private String ColumnName;
+    private String DataType;
+    private Integer LenghtField;
+    private String Description;
+    private String ConstraintName;
+    private String ConstraintType;
+    private String IsNullable;
+    private String TableName;
 
 }

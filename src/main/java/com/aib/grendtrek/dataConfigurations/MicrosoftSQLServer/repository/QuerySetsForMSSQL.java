@@ -1,5 +1,6 @@
 package com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.repository;
 
+import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataMSSQL;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import reactor.core.publisher.Flux;
@@ -11,7 +12,7 @@ import java.util.Optional;
 
 public class QuerySetsForMSSQL {
 
-    public Flux<Map<String, String>> seeAllTablesBySchema(ConnectionFactory factory) {
+    public Flux<List<SchemaDataMSSQL>> seeAllTablesBySchema(ConnectionFactory factory) {
         return Flux.usingWhen(
                 Mono.from(factory.create()),
                 connection -> Flux.from(
@@ -20,7 +21,7 @@ public class QuerySetsForMSSQL {
                                                     IC.COLUMN_NAME,
                                                     IC.Data_TYPE,
                                                     IC.CHARACTER_MAXIMUM_LENGTH as LengthField,
-                                                    EP.[Value] as [MS_Description],
+                                                    CAST(EP.[Value] as Nvarchar) as [MS_Description],
                                                     IKU.CONSTRAINT_NAME,
                                                     ITC.CONSTRAINT_TYPE,
                                                     IC.IS_NULLABLE,
@@ -41,19 +42,25 @@ public class QuerySetsForMSSQL {
                                                 order by IC.ORDINAL_POSITION
                                                 """)
                                         .execute())
-                        .flatMap(result -> {
-                            return result.map((row, data) -> {
-                                final String columnName = row.get("COLUMN_NAME", String.class);
-                                final String tableName = row.get("TABLE_NAME", String.class);
-                                return Map.of(columnName, tableName);
-                            });
-                        }),
+                        .flatMap(result -> result.map((row, data) ->
+                                        List.of(SchemaDataMSSQL.builder()
+                                                .ColumnName(row.get("COLUMN_NAME", String.class))
+                                                .DataType(row.get("Data_TYPE", String.class))
+                                                .LenghtField(row.get("LengthField", Integer.class))
+                                                .Description(row.get("MS_Description", String.class))
+                                                .ConstraintName(row.get("CONSTRAINT_NAME", String.class))
+                                                .ConstraintType(row.get("CONSTRAINT_TYPE", String.class))
+                                                .IsNullable(row.get("IS_NULLABLE", String.class))
+                                                .TableName(row.get("TABLE_NAME", String.class))
+                                                .build())
+                                )
+                        ),
                 Connection::close
         );
     }
 
 
-    public Flux<List<String>> seeByTableAndSchema(ConnectionFactory factory, String tableName, String schemaName) {
+    public Flux<List<SchemaDataMSSQL>> seeByTableAndSchema(ConnectionFactory factory, String tableName, String schemaName) {
         return Flux.usingWhen(
                 Mono.from(factory.create()),
                 connection -> Flux.from(connection.createStatement(String.format("""
@@ -61,7 +68,7 @@ public class QuerySetsForMSSQL {
                                     IC.COLUMN_NAME,
                                     IC.Data_TYPE,
                                     IC.CHARACTER_MAXIMUM_LENGTH as LengthField,
-                                    EP.[Value] as [MS_Description],
+                                    CAST(EP.[Value] as Nvarchar) as [MS_Description],
                                     IKU.CONSTRAINT_NAME,
                                     ITC.CONSTRAINT_TYPE,
                                     IC.IS_NULLABLE,
@@ -81,11 +88,19 @@ public class QuerySetsForMSSQL {
                                   and IC.TABLE_SCHEMA = '%s'
                                 and IC.TABLE_NAME = '%s'
                                 order by IC.ORDINAL_POSITION
-                                """,schemaName, tableName))
-                        .execute()).flatMap(result -> result.map((row, metadata) -> {
-                        final String field = Optional.ofNullable(row.get("COLUMN_NAME", String.class)).orElse("Not Found");
-                        return List.of(field);
-                    })),
+                                """, schemaName, tableName))
+                        .execute()).flatMap(result -> result.map((row, metadata) ->
+                        List.of(SchemaDataMSSQL.builder()
+                                .ColumnName(row.get("COLUMN_NAME", String.class))
+                                .DataType(row.get("Data_TYPE", String.class))
+                                .LenghtField(row.get("LengthField", Integer.class))
+                                .Description(row.get("MS_Description", String.class))
+                                .ConstraintName(row.get("CONSTRAINT_NAME", String.class))
+                                .ConstraintType(row.get("CONSTRAINT_TYPE", String.class))
+                                .IsNullable(row.get("IS_NULLABLE", String.class))
+                                .TableName(row.get("TABLE_NAME", String.class))
+                                .build())
+                )),
                 Connection::close
         );
     }
