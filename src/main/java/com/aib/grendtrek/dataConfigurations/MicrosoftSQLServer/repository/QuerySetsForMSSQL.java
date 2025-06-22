@@ -1,16 +1,41 @@
 package com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.repository;
 
+import com.aib.grendtrek.common.ResponseActions;
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataMSSQL;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
+@Component
 public class QuerySetsForMSSQL {
+
+    public Flux<ResponseActions<String>> getAllSchemas(ConnectionFactory factory) {
+        return Flux.usingWhen(
+                Mono.from(factory.create()),
+                connection -> Flux.from(
+                                connection
+                                        .createStatement("""
+                                                SELECT SCHEMA_NAME from INFORMATION_SCHEMA.SCHEMATA s
+                                                where s.SCHEMA_OWNER = 'dbo'
+                                                """)
+                                        .execute())
+                        .flatMap(result -> result
+                                .map((data, metadata) -> new ResponseActions<>(true,
+                                        List.of(Optional.ofNullable(data.get("SCHEMA_NAME", String.class)).orElse("Not Found")),
+                                        "" )
+                                )
+                        )
+                        .onErrorResume(err ->
+                                Flux.just(new ResponseActions<>(false, Collections.emptyList(), err.getMessage()))),
+                Connection::close
+        );
+    }
 
     public Flux<List<SchemaDataMSSQL>> seeAllTablesBySchema(ConnectionFactory factory) {
         return Flux.usingWhen(
@@ -36,6 +61,7 @@ public class QuerySetsForMSSQL {
                                                     			and IKU.TABLE_NAME = IC.TABLE_NAME and IKU.TABLE_CATALOG = IC.TABLE_CATALOG
                                                     LEFT OUTER JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS ITC ON ITC.TABLE_NAME = IKU.TABLE_NAME
                                                     			and ITC.CONSTRAINT_NAME = IKU.CONSTRAINT_NAME
+                                                    INNER JOIN INFORMATION_SCHEMA.TABLES t  ON IC.TABLE_NAME = t.TABLE_NAME
                                                 WHERE
                                                   IC.TABLE_CATALOG = 'AdventureWorks2022'
                                                   and IC.TABLE_SCHEMA = 'HumanResources'
@@ -83,6 +109,7 @@ public class QuerySetsForMSSQL {
                                     			and IKU.TABLE_NAME = IC.TABLE_NAME and IKU.TABLE_CATALOG = IC.TABLE_CATALOG
                                     LEFT OUTER JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS ITC ON ITC.TABLE_NAME = IKU.TABLE_NAME
                                     			and ITC.CONSTRAINT_NAME = IKU.CONSTRAINT_NAME
+                                    INNER JOIN INFORMATION_SCHEMA.TABLES t  ON IC.TABLE_NAME = t.TABLE_NAME
                                 WHERE
                                   IC.TABLE_CATALOG = 'AdventureWorks2022'
                                   and IC.TABLE_SCHEMA = '%s'

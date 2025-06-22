@@ -1,4 +1,4 @@
-package com.aib.grendtrek.dataConfigurations.common;
+package com.aib.grendtrek.common;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
