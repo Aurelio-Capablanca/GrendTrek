@@ -5,6 +5,7 @@ import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataM
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

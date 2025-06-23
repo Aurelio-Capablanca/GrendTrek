@@ -17,7 +17,7 @@ import reactor.core.publisher.Mono;
 @AllArgsConstructor
 public class MigrateFromMSSQLToPostgreSQL {
 
-    private final FromMSSQLToPostgreSQL migration = new FromMSSQLToPostgreSQL();
+    private final FromMSSQLToPostgreSQL migration;
 
     @PostMapping("/check-schema")
     public Mono<ResponseEntity<ResponseActions<String>>> checkOriginSchemas(@RequestBody ConnectionNames names){
