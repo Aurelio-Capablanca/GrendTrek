@@ -1,11 +1,10 @@
 package com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.repository;
 
-import com.aib.grendtrek.common.ResponseActions;
+import com.aib.grendtrek.common.GeneralResponse;
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataMSSQL;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -16,7 +15,7 @@ import java.util.Optional;
 @Component
 public class QuerySetsForMSSQL {
 
-    public Flux<ResponseActions<String>> getAllSchemas(ConnectionFactory factory) {
+    public Flux<GeneralResponse<String>> getAllSchemas(ConnectionFactory factory) {
         return Flux.usingWhen(
                 Mono.from(factory.create()),
                 connection -> Flux.from(
@@ -27,13 +26,13 @@ public class QuerySetsForMSSQL {
                                                 """)
                                         .execute())
                         .flatMap(result -> result
-                                .map((data, metadata) -> new ResponseActions<>(true,
+                                .map((data, metadata) -> new GeneralResponse<>(true,
                                         List.of(Optional.ofNullable(data.get("SCHEMA_NAME", String.class)).orElse("Not Found")),
                                         "" )
                                 )
                         )
                         .onErrorResume(err ->
-                                Flux.just(new ResponseActions<>(false, Collections.emptyList(), err.getMessage()))),
+                                Flux.just(new GeneralResponse<>(false, Collections.emptyList(), err.getMessage()))),
                 Connection::close
         );
     }

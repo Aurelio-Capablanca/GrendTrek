@@ -1,6 +1,6 @@
 package com.aib.grendtrek.Exposure;
 
-import com.aib.grendtrek.common.ResponseActions;
+import com.aib.grendtrek.common.GeneralResponse;
 import com.aib.grendtrek.dataTransformations.models.requests.ConnectionNames;
 import com.aib.grendtrek.dataTransformations.services.FromMSSQLToPostgreSQL;
 import lombok.AllArgsConstructor;
@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -20,7 +19,7 @@ public class MigrateFromMSSQLToPostgreSQL {
     private final FromMSSQLToPostgreSQL migration;
 
     @PostMapping("/check-schema")
-    public Mono<ResponseEntity<ResponseActions<String>>> checkOriginSchemas(@RequestBody ConnectionNames names){
+    public Mono<ResponseEntity<GeneralResponse<String>>> checkOriginSchemas(@RequestBody ConnectionNames names){
         return migration.checkAndCreateSchemas(names.getOrigin(), names.getDestiny());
     }
 

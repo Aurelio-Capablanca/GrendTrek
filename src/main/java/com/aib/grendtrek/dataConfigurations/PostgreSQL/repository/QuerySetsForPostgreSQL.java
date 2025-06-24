@@ -1,6 +1,6 @@
 package com.aib.grendtrek.dataConfigurations.PostgreSQL.repository;
 
-import com.aib.grendtrek.common.ResponseActions;
+import com.aib.grendtrek.common.GeneralResponse;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import org.springframework.stereotype.Component;
@@ -32,7 +32,7 @@ public class QuerySetsForPostgreSQL {
         );
     }
 
-    public Flux<ResponseActions<String>> createNewSchemas(ConnectionFactory factory, List<String> schemaNames) {
+    public Flux<GeneralResponse<String>> createNewSchemas(ConnectionFactory factory, List<String> schemaNames) {
         return Flux.usingWhen(
                 Mono.from(factory.create()),
                 connection -> Flux.fromIterable(schemaNames)
@@ -40,9 +40,11 @@ public class QuerySetsForPostgreSQL {
                                 connection.createStatement(String.format("CREATE SCHEMA IF NOT EXISTS %s;", schemaName))
                                         .execute()
                         ).flatMap(result -> result
-                                .map((data, metadata) ->
-                                        new ResponseActions<>(true, List.of(""), "")))
-                        .onErrorResume(err -> Flux.just(new ResponseActions<>(false , Collections.emptyList(), err.getMessage()))),
+                                .map(rowsUpdated -> {
+                                    System.out.println(rowsUpdated);
+                                    return new GeneralResponse<>(true, schemaNames, "No Error");
+                                }))
+                        .onErrorResume(err -> Flux.just(new GeneralResponse<>(false , Collections.emptyList(), err.getMessage()))),
                 Connection::close
         );
     }
