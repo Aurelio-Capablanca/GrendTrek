@@ -37,15 +37,13 @@ public class QuerySetsForPostgreSQL {
                 Mono.from(factory.create()),
                 connection -> Flux.fromIterable(schemaNames)
                         .flatMap(schemaName ->
-                                connection.createStatement(String.format("CREATE SCHEMA IF NOT EXISTS %s;", schemaName))
-                                        .execute()
-                        ).flatMap(result -> result
-                                .map(rowsUpdated -> {
-                                    System.out.println(rowsUpdated);
-                                    return new GeneralResponse<>(true, schemaNames, "No Error");
-                                }))
-                        .onErrorResume(err -> Flux.just(new GeneralResponse<>(false , Collections.emptyList(), err.getMessage()))),
-                Connection::close
+                                Mono.from(connection.createStatement(String.format("CREATE SCHEMA IF NOT EXISTS %s;", schemaName))
+                                                .execute())
+                                        .thenReturn(schemaName)
+                                        .map(created -> new GeneralResponse<>(true, List.of(created), null))
+                                        .onErrorResume(e -> Mono.just(new GeneralResponse<>(false, Collections.emptyList(), e.getMessage())))
+                        ),
+                connection -> Mono.from(connection.close())
         );
     }
 

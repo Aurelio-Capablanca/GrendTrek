@@ -12,8 +12,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -24,11 +22,14 @@ public class FromMSSQLToPostgreSQL {
     private final QuerySetsForPostgreSQL postgreSQLQueries;
 
     public Mono<ResponseEntity<GeneralResponse<String>>> checkAndCreateSchemas(String Origin, String Destiny) {
-        //First: Call the Schemas from Origin
         return mssqlQueries.getAllSchemas(factory.getConnectionFactory(Origin))
+                .doOnNext(schemas -> System.out.println("Schemas found: " + schemas))
                 .flatMap(data -> postgreSQLQueries.createNewSchemas(factory.getConnectionFactory(Destiny), data.data())) //Second: Create the Schemas
+                .doOnNext(created -> System.out.println("Schemas created: " + created))
                 .flatMap(response -> Flux.fromIterable(response.data()))
+                .doOnNext(item -> System.out.println("Item in flux: " + item))
                 .collectList()
+                .doOnNext(list -> System.out.println("Final list: " + list))
                 .map(data -> ResponseEntity.ok(new GeneralResponse<>(true, data, null)))
                 .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .body(new GeneralResponse<>(false, Collections.emptyList(), e.getMessage()))));
