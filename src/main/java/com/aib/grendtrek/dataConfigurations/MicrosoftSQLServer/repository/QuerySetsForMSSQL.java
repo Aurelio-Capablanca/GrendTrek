@@ -15,6 +15,23 @@ import java.util.Optional;
 @Component
 public class QuerySetsForMSSQL {
 
+
+    public Flux<GeneralResponse<String>> getTableRows(ConnectionFactory factory, String tableName) {
+        return Flux.usingWhen(
+                Mono.from(factory.create()),
+                connection -> Flux.from(connection
+                                .createStatement(String.format("Select * From %s", tableName))
+                                .execute())
+                        .flatMap(result -> result.map(dataset -> {
+                            System.out.println(dataset);
+                            return new GeneralResponse<>(true, List.of("Data Fetched"), null);
+                        }))
+                        .onErrorResume(err -> Mono.just(new GeneralResponse<>(false, Collections.emptyList(), err.getMessage()))),
+                Connection::close
+        );
+    }
+
+
     public Flux<GeneralResponse<String>> getAllSchemas(ConnectionFactory factory) {
         return Flux.usingWhen(
                 Mono.from(factory.create()),
@@ -28,7 +45,7 @@ public class QuerySetsForMSSQL {
                         .flatMap(result -> result
                                 .map((data, metadata) -> new GeneralResponse<>(true,
                                         List.of(Optional.ofNullable(data.get("SCHEMA_NAME", String.class)).orElse("Not Found")),
-                                        "" )
+                                        "")
                                 )
                         )
                         .onErrorResume(err ->
@@ -37,11 +54,11 @@ public class QuerySetsForMSSQL {
         );
     }
 
-    public Flux<List<SchemaDataMSSQL>> seeAllTablesBySchema(ConnectionFactory factory) {
+    public Flux<List<SchemaDataMSSQL>> seeAllTablesBySchema(ConnectionFactory factory, String schemaName) {
         return Flux.usingWhen(
                 Mono.from(factory.create()),
                 connection -> Flux.from(
-                                connection.createStatement("""                    
+                                connection.createStatement(String.format("""                    
                                                 SELECT
                                                     IC.COLUMN_NAME,
                                                     IC.Data_TYPE,
@@ -64,9 +81,9 @@ public class QuerySetsForMSSQL {
                                                     INNER JOIN INFORMATION_SCHEMA.TABLES t  ON IC.TABLE_NAME = t.TABLE_NAME
                                                 WHERE
                                                   IC.TABLE_CATALOG = 'AdventureWorks2022'
-                                                  and IC.TABLE_SCHEMA = 'HumanResources'
+                                                  and IC.TABLE_SCHEMA = '%s'
                                                 order by IC.ORDINAL_POSITION
-                                                """)
+                                                """,schemaName))
                                         .execute())
                         .flatMap(result -> result.map((row, data) ->
                                         List.of(SchemaDataMSSQL.builder()

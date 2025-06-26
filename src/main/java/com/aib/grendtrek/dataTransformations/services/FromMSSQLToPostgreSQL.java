@@ -12,6 +12,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Collections;
+import java.util.List;
 
 @Service
 @AllArgsConstructor
@@ -35,5 +36,13 @@ public class FromMSSQLToPostgreSQL {
                         .body(new GeneralResponse<>(false, Collections.emptyList(), e.getMessage()))));
     }
 
+    public Mono<ResponseEntity<GeneralResponse<String>>> getTablesBySchema(String Origin, List<String> schemas) {
+        return Mono.just(schemas)
+                .flatMapIterable(schema -> Flux.fromIterable(schema)
+                        .flatMap(data ->
+                                mssqlQueries.seeAllTablesBySchema(factory.getConnectionFactory(Origin), data)
+                        ).map()
+                        .onErrorResume();
+    }
 
 }
