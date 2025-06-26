@@ -13,6 +13,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -37,12 +38,17 @@ public class FromMSSQLToPostgreSQL {
     }
 
     public Mono<ResponseEntity<GeneralResponse<String>>> getTablesBySchema(String Origin, List<String> schemas) {
-        return Mono.just(schemas)
-                .flatMapIterable(schema -> Flux.fromIterable(schema)
-                        .flatMap(data ->
-                                mssqlQueries.seeAllTablesBySchema(factory.getConnectionFactory(Origin), data)
-                        ).map()
-                        .onErrorResume();
+        return Flux.fromIterable(schemas)
+                .flatMap(data ->
+                        mssqlQueries.seeAllTablesBySchema(factory.getConnectionFactory(Origin), data)
+                )
+                .flatMap(Flux::fromIterable)
+                .collectList()
+                .map(data -> ResponseEntity.ok(new GeneralResponse<>(true,
+                        data.stream().flatMap(dataGetter -> dataGetter.getTableName().describeConstable().stream()).toList(), null)))
+                .onErrorResume(err -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR
+                        ).body(new GeneralResponse<>(false, Collections.emptyList(), err.getMessage())))
+                );
     }
 
 }
