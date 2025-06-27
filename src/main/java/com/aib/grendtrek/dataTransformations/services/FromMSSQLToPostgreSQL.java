@@ -2,6 +2,7 @@ package com.aib.grendtrek.dataTransformations.services;
 
 import com.aib.grendtrek.common.R2DBCConnectionFactory;
 import com.aib.grendtrek.common.GeneralResponse;
+import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataMSSQL;
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.repository.QuerySetsForMSSQL;
 import com.aib.grendtrek.dataConfigurations.PostgreSQL.repository.QuerySetsForPostgreSQL;
 import lombok.AllArgsConstructor;
@@ -37,7 +38,7 @@ public class FromMSSQLToPostgreSQL {
                         .body(new GeneralResponse<>(false, Collections.emptyList(), e.getMessage()))));
     }
 
-    public Mono<ResponseEntity<GeneralResponse<String>>> getTablesBySchema(String Origin, List<String> schemas) {
+    public Mono<ResponseEntity<GeneralResponse<SchemaDataMSSQL>>> getTablesBySchema(String Origin, List<String> schemas) {
         return Flux.fromIterable(schemas)
                 .flatMap(data ->
                         mssqlQueries.seeAllTablesBySchema(factory.getConnectionFactory(Origin), data)
@@ -45,7 +46,7 @@ public class FromMSSQLToPostgreSQL {
                 .flatMap(Flux::fromIterable)
                 .collectList()
                 .map(data -> ResponseEntity.ok(new GeneralResponse<>(true,
-                        data.stream().flatMap(dataGetter -> dataGetter.getTableName().describeConstable().stream()).toList(), null)))
+                        data, null)))
                 .onErrorResume(err -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR
                         ).body(new GeneralResponse<>(false, Collections.emptyList(), err.getMessage())))
                 );

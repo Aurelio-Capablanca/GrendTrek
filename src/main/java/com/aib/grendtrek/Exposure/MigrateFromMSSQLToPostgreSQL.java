@@ -1,6 +1,8 @@
 package com.aib.grendtrek.Exposure;
 
 import com.aib.grendtrek.common.GeneralResponse;
+import com.aib.grendtrek.common.requests.Schemas;
+import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataMSSQL;
 import com.aib.grendtrek.dataTransformations.models.requests.ConnectionNames;
 import com.aib.grendtrek.dataTransformations.services.FromMSSQLToPostgreSQL;
 import lombok.AllArgsConstructor;
@@ -21,6 +23,11 @@ public class MigrateFromMSSQLToPostgreSQL {
     @PostMapping("/check-schema")
     public Mono<ResponseEntity<GeneralResponse<String>>> checkOriginSchemas(@RequestBody ConnectionNames names){
         return migration.checkAndCreateSchemas(names.getOrigin(), names.getDestiny());
+    }
+
+    @PostMapping("/see-table-fields-by-schemas")
+    public Mono<ResponseEntity<GeneralResponse<SchemaDataMSSQL>>> checkTablesBySchema(@RequestBody Schemas schemas){
+        return migration.getTablesBySchema(schemas.getOrigin(), schemas.getSchemas());
     }
 
 }

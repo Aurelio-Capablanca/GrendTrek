@@ -82,10 +82,11 @@ public class QuerySetsForMSSQL {
                                                 WHERE
                                                   IC.TABLE_CATALOG = 'AdventureWorks2022'
                                                   and IC.TABLE_SCHEMA = '%s'
-                                                order by IC.ORDINAL_POSITION
+                                                  and t.TABLE_TYPE = 'BASE TABLE'
+                                                order by t.TABLE_NAME
                                                 """,schemaName))
                                         .execute())
-                        .flatMap(result -> result.map((row, data) ->
+                        .flatMap(result -> result.map(row ->
                                         List.of(SchemaDataMSSQL.builder()
                                                 .ColumnName(row.get("COLUMN_NAME", String.class))
                                                 .DataType(row.get("Data_TYPE", String.class))
@@ -131,9 +132,10 @@ public class QuerySetsForMSSQL {
                                   IC.TABLE_CATALOG = 'AdventureWorks2022'
                                   and IC.TABLE_SCHEMA = '%s'
                                 and IC.TABLE_NAME = '%s'
+                                and t.TABLE_TYPE = 'BASE TABLE'
                                 order by IC.ORDINAL_POSITION
                                 """, schemaName, tableName))
-                        .execute()).flatMap(result -> result.map((row, metadata) ->
+                        .execute()).flatMap(result -> result.map(row ->
                         List.of(SchemaDataMSSQL.builder()
                                 .ColumnName(row.get("COLUMN_NAME", String.class))
                                 .DataType(row.get("Data_TYPE", String.class))
