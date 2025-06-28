@@ -29,10 +29,21 @@ public class GenerateDDLForPostgreSQL {
                 DDLForTables.append(fields.getColumnName()).append(" ")
                         .append(fields.getDataType());
                 if (fields.getLenghtField() == null)
-                    DDLForTables.append("(").append(fields.getLenghtField()).append(") ");
-                else
                     DDLForTables.append(" ");
-                //if ()
+                else
+                    DDLForTables.append("(").append(fields.getLenghtField()).append(")");
+                if (fields.getConstraintName() != null && fields.getConstraintType() != null) {
+                    DDLForTables.append("CONSTRAINT ")
+                            .append(fields.getConstraintName())
+                            .append(" ")
+                            .append(fields.getConstraintType())
+                            .append(" ");
+//                    if (fields.getConstraintType().equals("PRIMARY KEY")) {
+//                        DDLForTables.append("serial ");
+//                    }
+                }
+
+
             });
             DDLToCreate.add(DDLForTables.toString());
         });
