@@ -1,26 +1,27 @@
 package com.aib.grendtrek.dataTransformations.bridge;
 
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataMSSQL;
+import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Service
 public class GenerateDDLForPostgreSQL {
 
     public List<String> createDDLForPostgreSQL(List<SchemaDataMSSQL> schemaTable) {
-        final Map<String, List<SchemaDataMSSQL>> tablesPerSchema = schemaTable
-                .stream()
-                .collect(Collectors
-                        .toMap(SchemaDataMSSQL::getTableName,
-                                List::of
-                        )
-                );
+        final Map<String, List<SchemaDataMSSQL>> fieldsPerTable = new HashMap<>();
+        schemaTable
+                .forEach(data -> {
+                    fieldsPerTable.computeIfAbsent(data.getTableName(), key -> new ArrayList<>()).add(data);
+//                    if (fieldsPerTable.containsKey(data.getTableName())) {
+//                        fieldsPerTable.get(data.getTableName()).add(data);
+//                    }
+//                    fieldsPerTable.put(data.getTableName(), Arrays.asList(data));
+                });
         final List<String> DDLToCreate = new ArrayList<>();
-        tablesPerSchema.forEach((key, value) -> {
+        fieldsPerTable.forEach((key, value) -> {
             final StringBuilder DDLForTables = new StringBuilder()
                     .append("create table ").append(key)
                     .append("( ");
@@ -42,13 +43,12 @@ public class GenerateDDLForPostgreSQL {
 //                        DDLForTables.append("serial ");
 //                    }
                 }
-
-
+                DDLForTables.append(",");
             });
             DDLToCreate.add(DDLForTables.toString());
         });
         DDLToCreate.forEach(System.out::println);
-        return Collections.emptyList();
+        return DDLToCreate;
     }
 
 
