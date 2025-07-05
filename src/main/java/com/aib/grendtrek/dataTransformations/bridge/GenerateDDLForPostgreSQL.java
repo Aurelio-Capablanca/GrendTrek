@@ -26,6 +26,7 @@ public class GenerateDDLForPostgreSQL {
                     .append("create table ").append(key)
                     .append("( ");
             value.forEach(fields -> {
+                System.out.println("Index In : " + value.indexOf(fields) + " Size of List : " + value.size());
                 // ColumnName DataType(length) CONSTRAINT ConstraintName ConstraintType Not null (IsNullable),
                 DDLForTables.append(fields.getColumnName()).append(" ")
                         .append(fields.getDataType());
@@ -43,7 +44,10 @@ public class GenerateDDLForPostgreSQL {
 //                        DDLForTables.append("serial ");
 //                    }
                 }
-                DDLForTables.append(",");
+                if (value.indexOf(fields) != (value.size() - 1))
+                    DDLForTables.append(",");
+                else
+                    DDLForTables.append(")");
             });
             DDLToCreate.add(DDLForTables.toString());
         });
