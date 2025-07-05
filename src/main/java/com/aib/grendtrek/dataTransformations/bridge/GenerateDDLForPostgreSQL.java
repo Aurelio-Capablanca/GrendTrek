@@ -28,7 +28,8 @@ public class GenerateDDLForPostgreSQL {
             value.forEach(fields -> {
                 System.out.println("Index In : " + value.indexOf(fields) + " Size of List : " + value.size());
                 // ColumnName DataType(length) CONSTRAINT ConstraintName ConstraintType Not null (IsNullable),
-                DDLForTables.append(fields.getColumnName()).append(" ")
+                final String columnName = fields.getColumnName().replace(" ", "_");
+                DDLForTables.append(columnName).append(" ")
                         .append(fields.getDataType());
                 if (fields.getLenghtField() == null)
                     DDLForTables.append(" ");
