@@ -10,49 +10,56 @@ import java.util.stream.Collectors;
 @Service
 public class GenerateDDLForPostgreSQL {
 
+    private static final Map<String, String> typeTranslation = Map.of(
+            "nvarchar", "VARCHAR",
+            "varchar", "VARCHAR",
+            "int", "INTEGER",
+            "tinyint", "SMALLINT",
+            "datetime", "TIMESTAMP",
+            "xml", "TEXT"
+    );
+
+    private String buildColumn(SchemaDataMSSQL fields){
+        final StringBuilder DDLForTables = new StringBuilder();
+        DDLForTables
+                .append("\"").append(fields.getColumnName().replace(" ", "_")).append("\"")
+                .append(" ")
+                .append(typeTranslation.get(fields.getDataType()));
+
+        if (fields.getLenghtField() != null && fields.getLenghtField() > 0)
+            DDLForTables.append("(").append(fields.getLenghtField()).append(")");
+
+        if (fields.getConstraintName() != null && fields.getConstraintType() != null) {
+            DDLForTables.append(" CONSTRAINT ")
+                    .append(fields.getConstraintName())
+                    .append(" ")
+                    .append(fields.getConstraintType())
+                    .append(" ");
+        }
+
+        if("NO".equalsIgnoreCase(fields.getIsNullable()))
+            DDLForTables.append(" NOT NULL");
+        return DDLForTables.toString();
+    }
+
     public List<String> createDDLForPostgreSQL(List<SchemaDataMSSQL> schemaTable) {
         final Map<String, List<SchemaDataMSSQL>> fieldsPerTable = new HashMap<>();
         schemaTable
                 .forEach(data -> {
                     fieldsPerTable.computeIfAbsent(data.getTableName(), key -> new ArrayList<>()).add(data);
-//                    if (fieldsPerTable.containsKey(data.getTableName())) {
-//                        fieldsPerTable.get(data.getTableName()).add(data);
-//                    }
-//                    fieldsPerTable.put(data.getTableName(), Arrays.asList(data));
                 });
         final List<String> DDLToCreate = new ArrayList<>();
         fieldsPerTable.forEach((key, value) -> {
             final StringBuilder DDLForTables = new StringBuilder()
-                    .append("create table ").append(key)
+                    .append("create table ")
+                    .append("\"").append(key).append("\"")
                     .append("( ");
-            value.forEach(fields -> {
-                System.out.println("Index In : " + value.indexOf(fields) + " Size of List : " + value.size());
-                // ColumnName DataType(length) CONSTRAINT ConstraintName ConstraintType Not null (IsNullable),
-                final String columnName = fields.getColumnName().replace(" ", "_");
-                DDLForTables.append(columnName).append(" ")
-                        .append(fields.getDataType());
-                if (fields.getLenghtField() == null)
-                    DDLForTables.append(" ");
-                else
-                    DDLForTables.append("(").append(fields.getLenghtField()).append(")");
-                if (fields.getConstraintName() != null && fields.getConstraintType() != null) {
-                    DDLForTables.append("CONSTRAINT ")
-                            .append(fields.getConstraintName())
-                            .append(" ")
-                            .append(fields.getConstraintType())
-                            .append(" ");
-//                    if (fields.getConstraintType().equals("PRIMARY KEY")) {
-//                        DDLForTables.append("serial ");
-//                    }
-                }
-                if (value.indexOf(fields) != (value.size() - 1))
-                    DDLForTables.append(",");
-                else
-                    DDLForTables.append(")");
-            });
+            final String columns = value.stream().map(this::buildColumn).collect(Collectors.joining(", "));
+            DDLForTables.append(columns).append(" );");
             DDLToCreate.add(DDLForTables.toString());
         });
         DDLToCreate.forEach(System.out::println);
+        System.out.println("TABLES to create : "+DDLToCreate.size());
         return DDLToCreate;
     }
 
