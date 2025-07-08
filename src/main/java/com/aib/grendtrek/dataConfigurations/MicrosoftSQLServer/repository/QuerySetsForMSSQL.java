@@ -1,6 +1,7 @@
 package com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.repository;
 
 import com.aib.grendtrek.common.GeneralResponse;
+import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.MSSQLForeignKeySet;
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataMSSQL;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
@@ -84,7 +85,7 @@ public class QuerySetsForMSSQL {
                                                   and IC.TABLE_SCHEMA = '%s'
                                                   and t.TABLE_TYPE = 'BASE TABLE'
                                                 order by t.TABLE_NAME
-                                                """,schemaName))
+                                                """, schemaName))
                                         .execute())
                         .flatMap(result -> result.map(row ->
                                         List.of(SchemaDataMSSQL.builder()
@@ -103,6 +104,50 @@ public class QuerySetsForMSSQL {
         );
     }
 
+
+    public Flux<List<MSSQLForeignKeySet>> getForeignKeyData(ConnectionFactory factory) {
+        return Flux.usingWhen(
+                Mono.from(factory.create()),
+                connection -> Flux.from(connection.createStatement("""
+                                        SELECT
+                                        fk.name AS ForeignKeyName,
+                                        sch1.name AS SourceSchema,
+                                        tab1.name AS SourceTable,
+                                        col1.name AS SourceColumn,
+                                        sch2.name AS TargetSchema,
+                                        tab2.name AS TargetTable,
+                                        col2.name AS TargetColumn
+                                    FROM
+                                        sys.foreign_keys fk
+                                    INNER JOIN sys.foreign_key_columns fkc\s
+                                        ON fkc.constraint_object_id = fk.object_id
+                                    INNER JOIN sys.tables tab1\s
+                                        ON tab1.object_id = fk.parent_object_id
+                                    INNER JOIN sys.schemas sch1\s
+                                        ON tab1.schema_id = sch1.schema_id
+                                    INNER JOIN sys.columns col1\s
+                                        ON col1.column_id = fkc.parent_column_id AND col1.object_id = tab1.object_id
+                                    INNER JOIN sys.tables tab2\s
+                                        ON tab2.object_id = fk.referenced_object_id
+                                    INNER JOIN sys.schemas sch2\s
+                                        ON tab2.schema_id = sch2.schema_id
+                                    INNER JOIN sys.columns col2\s
+                                        ON col2.column_id = fkc.referenced_column_id AND col2.object_id = tab2.object_id
+                                """).execute())
+                        .flatMap(result -> result.map(row ->
+                                List.of(MSSQLForeignKeySet.builder()
+                                        .ForeignKeyName(row.get("ForeignKeyName", String.class))
+                                        .SourceSchema(row.get("SourceSchema", String.class))
+                                        .SourceTable(row.get("SourceTable", String.class))
+                                        .SourceColumn(row.get("SourceColumn", String.class))
+                                        .TargetSchema(row.get("TargetSchema", String.class))
+                                        .TargetTable(row.get("TargetTable", String.class))
+                                        .TargetColumn(row.get("TargetColumn", String.class))
+                                        .build())
+                        )),
+                Connection::close
+        );
+    }
 
     public Flux<List<SchemaDataMSSQL>> seeByTableAndSchema(ConnectionFactory factory, String tableName, String schemaName) {
         return Flux.usingWhen(

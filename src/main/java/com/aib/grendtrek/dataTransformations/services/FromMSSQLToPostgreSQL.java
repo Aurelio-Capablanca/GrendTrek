@@ -2,6 +2,7 @@ package com.aib.grendtrek.dataTransformations.services;
 
 import com.aib.grendtrek.common.R2DBCConnectionFactory;
 import com.aib.grendtrek.common.GeneralResponse;
+import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.MSSQLForeignKeySet;
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataMSSQL;
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.repository.QuerySetsForMSSQL;
 import com.aib.grendtrek.dataConfigurations.PostgreSQL.repository.QuerySetsForPostgreSQL;
@@ -26,13 +27,13 @@ public class FromMSSQLToPostgreSQL {
 
     public Mono<ResponseEntity<GeneralResponse<String>>> checkAndCreateSchemas(String Origin, String Destiny) {
         return mssqlQueries.getAllSchemas(factory.getConnectionFactory(Origin))
-                .doOnNext(schemas -> System.out.println("Schemas found: " + schemas))
+                //.doOnNext(schemas -> System.out.println("Schemas found: " + schemas))
                 .flatMap(data -> postgreSQLQueries.createNewSchemas(factory.getConnectionFactory(Destiny), data.data())) //Second: Create the Schemas
-                .doOnNext(created -> System.out.println("Schemas created: " + created))
+                //.doOnNext(created -> System.out.println("Schemas created: " + created))
                 .flatMap(response -> Flux.fromIterable(response.data()))
-                .doOnNext(item -> System.out.println("Item in flux: " + item))
+                //.doOnNext(item -> System.out.println("Item in flux: " + item))
                 .collectList()
-                .doOnNext(list -> System.out.println("Final list: " + list))
+                //.doOnNext(list -> System.out.println("Final list: " + list))
                 .map(data -> ResponseEntity.ok(new GeneralResponse<>(true, data, null)))
                 .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .body(new GeneralResponse<>(false, Collections.emptyList(), e.getMessage()))));
@@ -52,4 +53,15 @@ public class FromMSSQLToPostgreSQL {
                 );
     }
 
+
+    public Mono<ResponseEntity<GeneralResponse<MSSQLForeignKeySet>>> getForeignKeysInDatabase(String Origin) {
+        return mssqlQueries.getForeignKeyData(factory.getConnectionFactory(Origin))
+                .flatMap(Flux::fromIterable)
+                .collectList()
+                .map(data -> ResponseEntity.ok(new GeneralResponse<>(true,
+                        data, null)))
+                .onErrorResume(err -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new GeneralResponse<>(false, Collections.emptyList(), err.getMessage())))
+                );
+    }
 }

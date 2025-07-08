@@ -3,6 +3,7 @@ package com.aib.grendtrek.dataTransformations.bridge;
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataMSSQL;
 import org.springframework.stereotype.Service;
 
+import javax.xml.crypto.Data;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -19,25 +20,15 @@ public class GenerateDDLForPostgreSQL {
             "xml", "TEXT"
     );
 
-    private String buildColumn(SchemaDataMSSQL fields){
+    private String buildColumn(SchemaDataMSSQL fields) {
         final StringBuilder DDLForTables = new StringBuilder();
         DDLForTables
                 .append("\"").append(fields.getColumnName().replace(" ", "_")).append("\"")
                 .append(" ")
                 .append(typeTranslation.get(fields.getDataType()));
-
         if (fields.getLenghtField() != null && fields.getLenghtField() > 0)
             DDLForTables.append("(").append(fields.getLenghtField()).append(")");
-
-        if (fields.getConstraintName() != null && fields.getConstraintType() != null) {
-            DDLForTables.append(" CONSTRAINT ")
-                    .append(fields.getConstraintName())
-                    .append(" ")
-                    .append(fields.getConstraintType())
-                    .append(" ");
-        }
-
-        if("NO".equalsIgnoreCase(fields.getIsNullable()))
+        if ("NO".equalsIgnoreCase(fields.getIsNullable()))
             DDLForTables.append(" NOT NULL");
         return DDLForTables.toString();
     }
@@ -55,13 +46,21 @@ public class GenerateDDLForPostgreSQL {
                     .append("\"").append(key).append("\"")
                     .append("( ");
             final String columns = value.stream().map(this::buildColumn).collect(Collectors.joining(", "));
-            DDLForTables.append(columns).append(" );");
+            final String constraints = value.stream().filter(data -> data.getConstraintType() != null)
+                    .filter(data -> !data.getConstraintType().equalsIgnoreCase("FOREIGN KEY"))
+                    .map(constraint ->  " CONSTRAINT \"" + constraint.getConstraintName() + "\" "+ constraint.getConstraintType() + " (\"" + constraint.getColumnName()+"\")")
+                    .collect(Collectors.joining(", "));
+            DDLForTables.append(columns).append(constraints.isEmpty() ? "" : ", " +constraints).append(" );");
             DDLToCreate.add(DDLForTables.toString());
         });
         DDLToCreate.forEach(System.out::println);
-        System.out.println("TABLES to create : "+DDLToCreate.size());
+        System.out.println("TABLES to create : " + DDLToCreate.size());
         return DDLToCreate;
     }
 
+
+    public void generateDDLForForeignKeys(){
+
+    }
 
 }
