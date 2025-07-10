@@ -1,5 +1,6 @@
 package com.aib.grendtrek.Exposure;
 
+import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.MSSQLForeignKeySet;
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataMSSQL;
 import com.aib.grendtrek.dataTransformations.bridge.GenerateDDLForPostgreSQL;
 import com.aib.grendtrek.dataTransformations.models.requests.AttributeForConnections;
@@ -34,4 +35,8 @@ public class ConfigurationForConnections {
         return Mono.just(ResponseEntity.ok(ddl.createDDLForPostgreSQL(schemaOrigin)));
     }
 
+    @PostMapping(value = "/test-ddl-foreign-keys-generation")
+    public Mono<ResponseEntity<String>> testForeignKeys(@RequestBody List<MSSQLForeignKeySet> keys){
+        return Mono.just(ResponseEntity.ok(ddl.generateDDLForForeignKeys(keys)));
+    }
 }
