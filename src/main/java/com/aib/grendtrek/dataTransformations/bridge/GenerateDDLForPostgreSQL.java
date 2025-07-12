@@ -8,18 +8,27 @@ import javax.xml.crypto.Data;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class GenerateDDLForPostgreSQL {
 
-    private static final Map<String, String> typeTranslation = Map.of(
-            "nvarchar", "VARCHAR",
-            "varchar", "VARCHAR",
-            "int", "INTEGER",
-            "tinyint", "SMALLINT",
-            "datetime", "TIMESTAMP",
-            "xml", "TEXT"
-    );
+    private static final Map<String, String> typeTranslation = Stream.of(new String[][]{
+                    {"nvarchar", "VARCHAR"},
+                    {"varchar", "VARCHAR"},
+                    {"int", "INTEGER"},
+                    {"tinyint", "SMALLINT"},
+                    {"datetime", "TIMESTAMP"},
+                    {"xml", "TEXT"},
+                    {"money", "NUMERIC"},
+                    {"uniqueidentifier", "UUID"},
+                    {"nchar", "CHAR"},
+                    {"geography", "GEOGRAPHY"},
+                    {"bit", "BOOLEAN"},
+                    {"smallmoney", "NUMERIC"}
+            })
+            .collect(Collectors.toMap(data -> data[0], data -> data[1]));
+
 
     private String buildColumn(SchemaDataMSSQL fields) {
         final StringBuilder DDLForTables = new StringBuilder();
@@ -61,7 +70,7 @@ public class GenerateDDLForPostgreSQL {
 
 
     private String generateDMLForForeignKeys(MSSQLForeignKeySet foreignKeySet) {
-        return "ALTER TABLE \"" + foreignKeySet.getSourceSchema() + "." + foreignKeySet.getSourceTable()
+        return "ALTER TABLE \"" + foreignKeySet.getSourceSchema() + "\".\"" + foreignKeySet.getSourceTable()
                + "\" ADD CONSTRAINT \"" + foreignKeySet.getForeignKeyName()
                + "\" FOREIGN KEY (\"" + foreignKeySet.getSourceColumn() + "\") REFERENCES \""
                + foreignKeySet.getTargetSchema() + "." + foreignKeySet.getTargetTable() + "\"(\""
@@ -71,9 +80,8 @@ public class GenerateDDLForPostgreSQL {
     public String generateDDLForForeignKeys(List<MSSQLForeignKeySet> foreignKeys) {
         //ALTER TABLE "ORIGIN_TABLE" ADD CONSTRAINT "CONSTRAINT_NAME"
         // FOREIGN KEY ("foreign_key_column") REFERENCES "TABLE_ORIGIN" ON DELETE SET NULL ("primary_key_column")
-        final String DMLForeignKey = foreignKeys.stream().map(this::generateDMLForForeignKeys)
+        return foreignKeys.stream().map(this::generateDMLForForeignKeys)
                 .collect(Collectors.joining("; "));
-        return DMLForeignKey;
     }
 
 }

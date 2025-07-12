@@ -68,7 +68,9 @@ public class QuerySetsForMSSQL {
                                                     IKU.CONSTRAINT_NAME,
                                                     ITC.CONSTRAINT_TYPE,
                                                     IC.IS_NULLABLE,
-                                                    IC.TABLE_NAME
+                                                    IC.TABLE_NAME,
+                                                    IC.NUMERIC_PRECISION,
+                                                    IC.NUMERIC_SCALE
                                                  FROM
                                                     INFORMATION_SCHEMA.COLUMNS IC
                                                     INNER JOIN sys.columns sc ON OBJECT_ID(QUOTENAME(IC.TABLE_SCHEMA) + '.' + QUOTENAME(IC.TABLE_NAME)) = sc.[object_id] AND IC.COLUMN_NAME = sc.name
@@ -97,6 +99,8 @@ public class QuerySetsForMSSQL {
                                                 .ConstraintType(row.get("CONSTRAINT_TYPE", String.class))
                                                 .IsNullable(row.get("IS_NULLABLE", String.class))
                                                 .TableName(row.get("TABLE_NAME", String.class))
+                                                .NumericPresicion(row.get("NUMERIC_PRECISION", Integer.class))
+                                                .NumericScale(row.get("NUMERIC_SCALE", Integer.class))
                                                 .build())
                                 )
                         ),
@@ -148,53 +152,4 @@ public class QuerySetsForMSSQL {
                 Connection::close
         );
     }
-
-    public Flux<List<SchemaDataMSSQL>> seeByTableAndSchema(ConnectionFactory factory, String tableName, String schemaName) {
-        return Flux.usingWhen(
-                Mono.from(factory.create()),
-                connection -> Flux.from(connection.createStatement(String.format("""
-                                    SELECT
-                                    IC.COLUMN_NAME,
-                                    IC.Data_TYPE,
-                                    IC.CHARACTER_MAXIMUM_LENGTH as LengthField,
-                                    CAST(EP.[Value] as Nvarchar) as [MS_Description],
-                                    IKU.CONSTRAINT_NAME,
-                                    ITC.CONSTRAINT_TYPE,
-                                    IC.IS_NULLABLE,
-                                    IC.TABLE_NAME
-                                 FROM
-                                    INFORMATION_SCHEMA.COLUMNS IC
-                                    INNER JOIN sys.columns sc ON OBJECT_ID(QUOTENAME(IC.TABLE_SCHEMA) + '.' + QUOTENAME(IC.TABLE_NAME)) = sc.[object_id] AND IC.COLUMN_NAME = sc.name
-                                    LEFT OUTER JOIN sys.extended_properties EP ON sc.[object_id] = EP.major_id
-                                    			AND sc.[column_id] = EP.minor_id AND EP.name = 'MS_Description' 	
-                                    			AND EP.class = 1
-                                    LEFT OUTER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE IKU ON IKU.COLUMN_NAME = IC.COLUMN_NAME
-                                    			and IKU.TABLE_NAME = IC.TABLE_NAME and IKU.TABLE_CATALOG = IC.TABLE_CATALOG
-                                    LEFT OUTER JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS ITC ON ITC.TABLE_NAME = IKU.TABLE_NAME
-                                    			and ITC.CONSTRAINT_NAME = IKU.CONSTRAINT_NAME
-                                    INNER JOIN INFORMATION_SCHEMA.TABLES t  ON IC.TABLE_NAME = t.TABLE_NAME
-                                WHERE
-                                  IC.TABLE_CATALOG = 'AdventureWorks2022'
-                                  and IC.TABLE_SCHEMA = '%s'
-                                and IC.TABLE_NAME = '%s'
-                                and t.TABLE_TYPE = 'BASE TABLE'
-                                order by IC.ORDINAL_POSITION
-                                """, schemaName, tableName))
-                        .execute()).flatMap(result -> result.map(row ->
-                        List.of(SchemaDataMSSQL.builder()
-                                .ColumnName(row.get("COLUMN_NAME", String.class))
-                                .DataType(row.get("Data_TYPE", String.class))
-                                .LenghtField(row.get("LengthField", Integer.class))
-                                .Description(row.get("MS_Description", String.class))
-                                .ConstraintName(row.get("CONSTRAINT_NAME", String.class))
-                                .ConstraintType(row.get("CONSTRAINT_TYPE", String.class))
-                                .IsNullable(row.get("IS_NULLABLE", String.class))
-                                .TableName(row.get("TABLE_NAME", String.class))
-                                .build())
-                )),
-                Connection::close
-        );
-    }
-
-
 }

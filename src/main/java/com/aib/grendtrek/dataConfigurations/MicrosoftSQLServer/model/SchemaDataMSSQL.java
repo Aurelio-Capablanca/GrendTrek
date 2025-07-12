@@ -19,5 +19,7 @@ public class SchemaDataMSSQL {
     private String ConstraintType;
     private String IsNullable;
     private String TableName;
+    private Integer NumericPresicion;//(p)
+    private Integer NumericScale;//(s) at NUMERIC (p,s)
 
 }
