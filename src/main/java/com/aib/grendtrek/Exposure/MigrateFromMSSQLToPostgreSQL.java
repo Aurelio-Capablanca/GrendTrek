@@ -39,7 +39,6 @@ public class MigrateFromMSSQLToPostgreSQL {
 
     @PostMapping("/create-tables-for-database")
     public Mono<ResponseEntity<GeneralResponse<String>>> createTablesForDestinationPostgreSQL(@RequestBody TableCreations tables) {
-        System.out.println("Recieved Object : "+tables);
         return migration.createAllTables(tables.getSchemaTable(), tables.getOrigin());
     }
 }

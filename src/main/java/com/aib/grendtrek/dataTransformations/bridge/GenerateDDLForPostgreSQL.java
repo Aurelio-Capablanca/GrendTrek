@@ -88,8 +88,8 @@ public class GenerateDDLForPostgreSQL {
             DDLForTables.append(columns).append(constraints.isEmpty() ? "" : ", " + constraints).append(" );");
             DDLToCreate.add(DDLManagement.builder().DDL(DDLForTables.toString()).TableName(key).build());
         });
-        DDLToCreate.forEach(System.out::println);
-        System.out.println("TABLES to create : " + DDLToCreate.size());
+        //DDLToCreate.forEach(System.out::println);
+        //System.out.println("TABLES to create : " + DDLToCreate.size());
         return DDLToCreate;
     }
 

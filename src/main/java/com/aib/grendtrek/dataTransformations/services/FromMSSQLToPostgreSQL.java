@@ -68,8 +68,13 @@ public class FromMSSQLToPostgreSQL {
         return postgreSQLQueries.executeTableCreations(factory.getConnectionFactory(Origin), DDL)
                 .flatMap(Flux::fromIterable).collectList()
                 .map(data -> ResponseEntity.ok(new GeneralResponse<>(true, data, null)))
-                .onErrorResume(err -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(new GeneralResponse<>(false, Collections.emptyList(), err.getMessage()))));
+                .onErrorResume(err -> {
+                    System.out.println("Error Got: "+err.getMessage());
+                    err.printStackTrace();
+                            return  Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                    .body(new GeneralResponse<>(false, Collections.emptyList(), err.getMessage())));
+                        }
+                );
 
     }
 

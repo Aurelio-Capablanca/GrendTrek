@@ -4,6 +4,7 @@ import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.MSSQLForeig
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataMSSQL;
 import com.aib.grendtrek.dataTransformations.bridge.GenerateDDLForPostgreSQL;
 import com.aib.grendtrek.dataTransformations.models.requests.AttributeForConnections;
+import com.aib.grendtrek.dataTransformations.models.requests.DDLManagement;
 import com.aib.grendtrek.dataTransformations.services.SetUpConnections;
 import lombok.AllArgsConstructor;
 import org.springframework.http.MediaType;
@@ -31,7 +32,7 @@ public class ConfigurationForConnections {
     }
 
     @PostMapping(value = "/test-ddl-generation", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<List<String>>> testDDL(@RequestBody List<SchemaDataMSSQL> schemaOrigin){
+    public Mono<ResponseEntity<List<DDLManagement>>> testDDL(@RequestBody List<SchemaDataMSSQL> schemaOrigin){
         return Mono.just(ResponseEntity.ok(ddl.createDDLForPostgreSQL(schemaOrigin)));
     }
 
