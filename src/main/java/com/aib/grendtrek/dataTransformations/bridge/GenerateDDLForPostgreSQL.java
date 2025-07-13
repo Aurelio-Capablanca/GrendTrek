@@ -4,15 +4,15 @@ import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.MSSQLForeig
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataMSSQL;
 import org.springframework.stereotype.Service;
 
-import javax.xml.crypto.Data;
 import java.util.*;
-import java.util.function.Function;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
 public class GenerateDDLForPostgreSQL {
 
+    private static final List<String> precicionTypes = List.of("NUMERIC", "DECIMAL");
     private static final Map<String, String> typeTranslation = Stream.of(new String[][]{
                     {"nvarchar", "VARCHAR"},
                     {"varchar", "VARCHAR"},
@@ -25,19 +25,31 @@ public class GenerateDDLForPostgreSQL {
                     {"nchar", "CHAR"},
                     {"geography", "GEOGRAPHY"},
                     {"bit", "BOOLEAN"},
-                    {"smallmoney", "NUMERIC"}
+                    {"smallmoney", "NUMERIC"},
+                    {"decimal", "DECIMAL"},
+                    {"hierarchyid", "LTREE"},
+                    {"smallint", "SMALLINT"},
+                    {"numeric", "NUMERIC"},
+                    {"date", "DATE"},
+                    {"time", "TIME"},
+                    {"varbinary", "BIT"}
             })
             .collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
 
     private String buildColumn(SchemaDataMSSQL fields) {
         final StringBuilder DDLForTables = new StringBuilder();
+        final String isPrimaryKey = Optional.ofNullable(fields.getConstraintType()).orElse("N");
+        final String typeForField = isPrimaryKey.equalsIgnoreCase("PRIMARY KEY") ? "SERIAL" : typeTranslation.get(fields.getDataType());
         DDLForTables
                 .append("\"").append(fields.getColumnName().replace(" ", "_")).append("\"")
                 .append(" ")
-                .append(typeTranslation.get(fields.getDataType()));
+                .append(typeForField);
+
         if (fields.getLenghtField() != null && fields.getLenghtField() > 0)
             DDLForTables.append("(").append(fields.getLenghtField()).append(")");
+        if (fields.getNumericPresicion() != null && fields.getNumericScale() != null && precicionTypes.contains(typeForField))
+            DDLForTables.append("(").append(fields.getNumericPresicion()).append(",").append(fields.getNumericScale()).append(")");
         if ("NO".equalsIgnoreCase(fields.getIsNullable()))
             DDLForTables.append(" NOT NULL");
         return DDLForTables.toString();
@@ -58,8 +70,20 @@ public class GenerateDDLForPostgreSQL {
             final String columns = value.stream().map(this::buildColumn).collect(Collectors.joining(", "));
             final String constraints = value.stream().filter(data -> data.getConstraintType() != null)
                     .filter(data -> !data.getConstraintType().equalsIgnoreCase("FOREIGN KEY"))
-                    .map(constraint -> " CONSTRAINT \"" + constraint.getConstraintName() + "\" " + constraint.getConstraintType() + " (\"" + constraint.getColumnName() + "\")")
-                    .collect(Collectors.joining(", "));
+                    .collect(Collectors.groupingBy(SchemaDataMSSQL::getTableName))
+                    .values().stream()
+                    .map(schemaDataMSSQLS -> {
+                        AtomicReference<String> constraintName = new AtomicReference<>();
+                        AtomicReference<String> constraintType = new AtomicReference<>();
+                        final String fields = schemaDataMSSQLS.stream().map(field -> {
+                                    constraintType.set(field.getConstraintType());
+                                    constraintName.set(field.getConstraintName());
+                                    return "\"" + field.getColumnName() + "\"";
+                                })
+                                .collect(Collectors.joining(","));
+                        return "CONSTRAINT \"" + constraintName.get() + "\" " + constraintType.get() + " (" + fields + ")";
+                    })
+                    .collect(Collectors.joining(""));
             DDLForTables.append(columns).append(constraints.isEmpty() ? "" : ", " + constraints).append(" );");
             DDLToCreate.add(DDLForTables.toString());
         });

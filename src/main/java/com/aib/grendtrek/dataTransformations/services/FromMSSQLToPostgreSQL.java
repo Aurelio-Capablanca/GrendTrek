@@ -6,6 +6,7 @@ import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.MSSQLForeig
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataMSSQL;
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.repository.QuerySetsForMSSQL;
 import com.aib.grendtrek.dataConfigurations.PostgreSQL.repository.QuerySetsForPostgreSQL;
+import com.aib.grendtrek.dataTransformations.bridge.GenerateDDLForPostgreSQL;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +16,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -24,16 +24,13 @@ public class FromMSSQLToPostgreSQL {
     private final R2DBCConnectionFactory factory = R2DBCConnectionFactory.getInstance();
     private final QuerySetsForMSSQL mssqlQueries;
     private final QuerySetsForPostgreSQL postgreSQLQueries;
+    private final GenerateDDLForPostgreSQL ddlGenerationPostgresql;
 
     public Mono<ResponseEntity<GeneralResponse<String>>> checkAndCreateSchemas(String Origin, String Destiny) {
         return mssqlQueries.getAllSchemas(factory.getConnectionFactory(Origin))
-                //.doOnNext(schemas -> System.out.println("Schemas found: " + schemas))
                 .flatMap(data -> postgreSQLQueries.createNewSchemas(factory.getConnectionFactory(Destiny), data.data())) //Second: Create the Schemas
-                //.doOnNext(created -> System.out.println("Schemas created: " + created))
                 .flatMap(response -> Flux.fromIterable(response.data()))
-                //.doOnNext(item -> System.out.println("Item in flux: " + item))
                 .collectList()
-                //.doOnNext(list -> System.out.println("Final list: " + list))
                 .map(data -> ResponseEntity.ok(new GeneralResponse<>(true, data, null)))
                 .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .body(new GeneralResponse<>(false, Collections.emptyList(), e.getMessage()))));
@@ -64,4 +61,13 @@ public class FromMSSQLToPostgreSQL {
                         .body(new GeneralResponse<>(false, Collections.emptyList(), err.getMessage())))
                 );
     }
+
+    public Mono<ResponseEntity<GeneralResponse<String>>> createAllTables(List<SchemaDataMSSQL> schemaTable){
+        return Mono.just(ddlGenerationPostgresql.createDDLForPostgreSQL(schemaTable))
+                .map(data -> {
+
+                   return null;
+                });
+    }
+
 }

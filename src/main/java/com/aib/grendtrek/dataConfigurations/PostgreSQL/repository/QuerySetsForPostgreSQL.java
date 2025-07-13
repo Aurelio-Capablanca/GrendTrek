@@ -47,4 +47,17 @@ public class QuerySetsForPostgreSQL {
         );
     }
 
+    public Flux<GeneralResponse<String>> executeTableCreations(ConnectionFactory factory, List<String> tableDDL) {
+        return Flux.usingWhen(
+                Mono.from(factory.create()),
+                connection -> Flux.fromIterable(tableDDL)
+                        .flatMap(ddl ->
+                                Mono.from(connection.createStatement(ddl).execute())
+                                        .map(execution -> new GeneralResponse<>(true, List.of(execution.getRowsUpdated().toString()), null))
+                                        .onErrorResume(err -> Mono.just(new GeneralResponse<>(false, Collections.emptyList(), err.getMessage())))
+                        ),
+                Connection::close
+        );
+    }
+
 }
