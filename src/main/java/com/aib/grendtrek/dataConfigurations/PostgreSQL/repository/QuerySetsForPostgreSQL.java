@@ -1,6 +1,7 @@
 package com.aib.grendtrek.dataConfigurations.PostgreSQL.repository;
 
 import com.aib.grendtrek.common.GeneralResponse;
+import com.aib.grendtrek.dataTransformations.models.requests.DDLManagement;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import org.springframework.stereotype.Component;
@@ -47,14 +48,14 @@ public class QuerySetsForPostgreSQL {
         );
     }
 
-    public Flux<GeneralResponse<String>> executeTableCreations(ConnectionFactory factory, List<String> tableDDL) {
+    public Flux<List<String>> executeTableCreations(ConnectionFactory factory, List<DDLManagement> tableDDL) {
         return Flux.usingWhen(
                 Mono.from(factory.create()),
                 connection -> Flux.fromIterable(tableDDL)
                         .flatMap(ddl ->
-                                Mono.from(connection.createStatement(ddl).execute())
-                                        .map(execution -> new GeneralResponse<>(true, List.of(execution.getRowsUpdated().toString()), null))
-                                        .onErrorResume(err -> Mono.just(new GeneralResponse<>(false, Collections.emptyList(), err.getMessage())))
+                                Mono.from(connection.createStatement(ddl.getDDL()).execute())
+                                        .map(execution -> List.of("created Table : "+ddl.getTableName() + "Rows: " + execution.getRowsUpdated().toString()))
+                                        .onErrorResume(err -> Mono.just(Collections.emptyList()))
                         ),
                 Connection::close
         );

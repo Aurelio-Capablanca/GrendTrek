@@ -7,6 +7,7 @@ import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataM
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.repository.QuerySetsForMSSQL;
 import com.aib.grendtrek.dataConfigurations.PostgreSQL.repository.QuerySetsForPostgreSQL;
 import com.aib.grendtrek.dataTransformations.bridge.GenerateDDLForPostgreSQL;
+import com.aib.grendtrek.dataTransformations.models.requests.DDLManagement;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -62,12 +63,14 @@ public class FromMSSQLToPostgreSQL {
                 );
     }
 
-    public Mono<ResponseEntity<GeneralResponse<String>>> createAllTables(List<SchemaDataMSSQL> schemaTable){
-        return Mono.just(ddlGenerationPostgresql.createDDLForPostgreSQL(schemaTable))
-                .map(data -> {
+    public Mono<ResponseEntity<GeneralResponse<String>>> createAllTables(List<SchemaDataMSSQL> schemaTable, String Origin){
+        final List<DDLManagement> DDL = ddlGenerationPostgresql.createDDLForPostgreSQL(schemaTable);
+        return postgreSQLQueries.executeTableCreations(factory.getConnectionFactory(Origin), DDL)
+                .flatMap(Flux::fromIterable).collectList()
+                .map(data -> ResponseEntity.ok(new GeneralResponse<>(true, data, null)))
+                .onErrorResume(err -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new GeneralResponse<>(false, Collections.emptyList(), err.getMessage()))));
 
-                   return null;
-                });
     }
 
 }

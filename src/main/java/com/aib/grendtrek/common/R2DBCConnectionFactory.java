@@ -61,7 +61,6 @@ public class R2DBCConnectionFactory {
                         connection ->
                                 Flux.from(connection.createStatement("SELECT 1").execute())
                                         .flatMap(result -> result.map((row, data) -> {
-                                            //
                                             return row.get(0) + " from : " + data.getColumnMetadatas();
                                         })),
                         connection -> Mono.from(connection.close())

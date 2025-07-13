@@ -2,6 +2,7 @@ package com.aib.grendtrek.dataTransformations.bridge;
 
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.MSSQLForeignKeySet;
 import com.aib.grendtrek.dataConfigurations.MicrosoftSQLServer.model.SchemaDataMSSQL;
+import com.aib.grendtrek.dataTransformations.models.requests.DDLManagement;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -55,13 +56,13 @@ public class GenerateDDLForPostgreSQL {
         return DDLForTables.toString();
     }
 
-    public List<String> createDDLForPostgreSQL(List<SchemaDataMSSQL> schemaTable) {
+    public List<DDLManagement> createDDLForPostgreSQL(List<SchemaDataMSSQL> schemaTable) {
         final Map<String, List<SchemaDataMSSQL>> fieldsPerTable = new HashMap<>();
         schemaTable
                 .forEach(data -> {
                     fieldsPerTable.computeIfAbsent(data.getTableName(), key -> new ArrayList<>()).add(data);
                 });
-        final List<String> DDLToCreate = new ArrayList<>();
+        final List<DDLManagement> DDLToCreate = new ArrayList<>();
         fieldsPerTable.forEach((key, value) -> {
             final StringBuilder DDLForTables = new StringBuilder()
                     .append("create table ")
@@ -85,7 +86,7 @@ public class GenerateDDLForPostgreSQL {
                     })
                     .collect(Collectors.joining(""));
             DDLForTables.append(columns).append(constraints.isEmpty() ? "" : ", " + constraints).append(" );");
-            DDLToCreate.add(DDLForTables.toString());
+            DDLToCreate.add(DDLManagement.builder().DDL(DDLForTables.toString()).TableName(key).build());
         });
         DDLToCreate.forEach(System.out::println);
         System.out.println("TABLES to create : " + DDLToCreate.size());
