@@ -51,12 +51,24 @@ public class QuerySetsForPostgreSQL {
     public Flux<List<String>> executeTableCreations(ConnectionFactory factory, List<DDLManagement> tableDDL) {
         return Flux.usingWhen(
                 Mono.from(factory.create()),
-                connection -> Flux.fromIterable(tableDDL)
-                        .flatMap(ddl ->
-                                Mono.from(connection.createStatement(ddl.getDDL()).execute())
-                                        .map(execution -> List.of("created Table : "+ddl.getTableName() + "Rows: " + execution.getRowsUpdated().toString()))
-                                        .onErrorResume(err -> Mono.just(Collections.emptyList()))
-                        ),
+                connection ->
+                        Mono.from(connection.beginTransaction())
+                                .thenMany(
+                                        Flux.fromIterable(tableDDL).flatMap(ddl ->
+                                                        Mono.from(connection.createStatement(ddl.getDDL()).execute())
+                                                                .map(execution ->
+                                                                        List.of("created Table : " + ddl.getTableName() + "Rows: " + execution.getRowsUpdated().toString()))
+                                                                .onErrorResume(err -> Mono.from(connection.rollbackTransaction())
+                                                                        .then(Mono.defer(() -> Mono.error(new RuntimeException("Failed DDL migration" + ddl.getTableName(), err))
+                                                                        ))
+                                                                )
+                                                )
+                                                .collectList()
+                                                .flatMapMany(res ->
+                                                        Mono.from(connection.commitTransaction())
+                                                                .thenMany(Flux.fromIterable(res))
+                                                )
+                                ),
                 Connection::close
         );
     }
