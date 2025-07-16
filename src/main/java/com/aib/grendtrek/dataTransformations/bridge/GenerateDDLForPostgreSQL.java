@@ -88,8 +88,6 @@ public class GenerateDDLForPostgreSQL {
             DDLForTables.append(columns).append(constraints.isEmpty() ? "" : ", " + constraints).append(" );");
             DDLToCreate.add(DDLManagement.builder().DDL(DDLForTables.toString()).TableName(key).build());
         });
-        //DDLToCreate.forEach(System.out::println);
-        //System.out.println("TABLES to create : " + DDLToCreate.size());
         return DDLToCreate;
     }
 
@@ -103,8 +101,6 @@ public class GenerateDDLForPostgreSQL {
     }
 
     public String generateDDLForForeignKeys(List<MSSQLForeignKeySet> foreignKeys) {
-        //ALTER TABLE "ORIGIN_TABLE" ADD CONSTRAINT "CONSTRAINT_NAME"
-        // FOREIGN KEY ("foreign_key_column") REFERENCES "TABLE_ORIGIN" ON DELETE SET NULL ("primary_key_column")
         return foreignKeys.stream().map(this::generateDMLForForeignKeys)
                 .collect(Collectors.joining("; "));
     }
